@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Helper</title>
+  <!-- Import custom font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Root variables for colours and backgrounds */
+    :root {
+      /* Accent gradient colours used for highlights and borders */
+      --accent-start: #6e8efb;
+      --accent-end: #a777e3;
+      /* Colours for stat indicators */
+      --positive: #27ae60;
+      --negative: #c0392b;
+      /* Background with layered gradients for depth */
+      --bg-gradient: radial-gradient(circle at 20% 30%, rgba(27, 38, 79, 0.6), transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(46, 18, 53, 0.4), transparent 55%),
+        linear-gradient(180deg, #0b1120 0%, #0e1a31 40%, #0c1024 100%);
+      /* Semi‑transparent panels for sidebar and top bar */
+      --panel-bg: rgba(18, 22, 32, 0.85);
+      /* Semi‑transparent card backgrounds */
+      --card-bg: rgba(13, 18, 31, 0.8);
+      --border-color: rgba(255, 255, 255, 0.08);
+      /* Text colours */
+      --text-primary: #d6d9e6;
+      --text-muted: #7a89a2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-gradient);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Sidebar styles */
+    .sidebar {
+      width: 260px;
+      /* Apply a richer gradient similar to the main area */
+      /* Even darker gradient for sidebar */
+      background: linear-gradient(180deg, #02030a 0%, #050c1a 40%, #040a15 100%);
+      border-right: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      padding: 24px 20px;
+      overflow-y: auto;
+      /* Position relative so that absolutely positioned children (e.g. version
+         label) are anchored within the sidebar rather than the page. */
+      position: relative;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 24px;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Version label beneath the sidebar logo */
+    .version-info {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      /* Pin the version label to the bottom of the sidebar.  By using
+         absolute positioning we ensure it remains visible at all times
+         regardless of the amount of content above it. */
+      position: absolute;
+      left: 20px;
+      bottom: 20px;
+      margin: 0;
+    }
+
+    .filter-group {
+      margin-bottom: 24px;
+    }
+
+    .filter-group h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 0 0 6px;
+      /* Use gradient text for headings */
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .price-range {
+      display: flex;
+      gap: 8px;
+    }
+
+    .price-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .price-field label {
+      font-size: 10px;
+      text-transform: uppercase;
+      /* Use accent colour for price field labels */
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .price-range input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    .price-range input:focus {
+      outline: none;
+      border-color: var(--accent-end);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Temporary hide broken filter profile UI
+       The filter profile dropdown and save button are not functioning
+       correctly at the moment. To avoid confusing users we hide
+       these controls until they are fixed. */
+    #filterProfileSelect,
+    #saveProfileBtn {
+      display: none !important;
+    }
+
+    .price-info {
+      margin-top: 4px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .filter-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--accent-start);
+      cursor: pointer;
+    }
+
+    .filter-options input[type="checkbox"] {
+      accent-color: var(--accent-end);
+    }
+
+    .category-buttons button {
+      width: 100%;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .category-buttons button::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      opacity: 0;
+      z-index: -1;
+      transition: opacity 0.3s;
+    }
+
+    .category-buttons button:hover::before {
+      opacity: 0.4;
+    }
+
+    .category-buttons button.active {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .category-buttons button.active::before {
+      opacity: 0.8;
+    }
+
+    /* Interactive animations for buttons and inputs within the module view */
+    button.clear-out-btn, .category-buttons button, .sort-container select, .selected-chips .chip, .info-badge, button {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.clear-out-btn:hover, .category-buttons button:hover, .sort-container select:hover, .selected-chips .chip:hover, .info-badge:hover, button:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 6px rgba(174, 131, 255, 0.5);
+    }
+    button.clear-out-btn:active, .category-buttons button:active, .selected-chips .chip:active, .info-badge:active, button:active {
+      transform: scale(0.97);
+    }
+    input[type="text"]:focus, select:focus {
+      box-shadow: 0 0 6px rgba(174, 131, 255, 0.6);
+      outline: none;
+    }
+
+    /* Results count styling */
+    .results-count {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-right: 16px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Pulse animation for results count when the number changes */
+    .results-count.count-pulse {
+      animation: countPulse 0.6s;
+    }
+    @keyframes countPulse {
+      0% { color: var(--text-muted); transform: scale(1); }
+      50% { color: #17a2b8; transform: scale(1.15); }
+      100% { color: var(--text-muted); transform: scale(1); }
+    }
+
+    /* Main area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      /* Apply a gradient background similar to main area */
+      /* Even darker gradient for top bar */
+      background: linear-gradient(180deg, #02030a 0%, #050c1a 40%, #040a15 100%);
+      border-bottom: 1px solid var(--border-color);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Hide the original logo in the top bar since the title will reside in the sidebar */
+    .top-bar .logo {
+      display: none;
+    }
+
+    /* Sidebar logo: place the market helper title above the filters to free up space in the top bar */
+    .logo-side {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 12px;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .search-container {
+      position: relative;
+      flex: 1;
+      /* Inherit width from its wrapper; no explicit margin in top bar */
+      width: 100%;
+      max-width: none;
+      margin: 0;
+    }
+
+    .search-container input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.05), 0 0 4px rgba(0, 0, 0, 0.3);
+      /* Extra padding on the right to make space for inside icons if needed */
+      padding-right: 20px;
+    }
+
+    .search-container input[type="text"]:focus {
+      border-color: var(--accent-end);
+      box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.08), 0 0 6px rgba(110, 142, 251, 0.4);
+    }
+
+    /* Style for clear buttons located outside search bars */
+    .clear-out-btn {
+      padding: 6px 12px;
+      margin-left: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(110, 142, 251, 0.15);
+      color: var(--accent-start);
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .clear-out-btn:hover {
+      background: rgba(110, 142, 251, 0.3);
+    }
+
+    .suggestion-box {
+      position: absolute;
+      left: 0;
+      top: 100%;
+      z-index: 30;
+      width: 100%;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .suggestion-item {
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .suggestion-item:hover {
+      background: rgba(110, 142, 251, 0.2);
+    }
+
+    /* Selected attribute chips */
+    .selected-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      /* Default padding and margin will be overridden in specific contexts */
+      padding: 0 20px;
+      margin-top: 6px;
+      /* Center selected attribute chips horizontally */
+      justify-content: center;
+    }
+
+    /* Selected chips inside the search group should align with the search bars */
+    .search-group .selected-chips {
+      width: 100%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(110, 142, 251, 0.18);
+      border: 1px solid rgba(110, 142, 251, 0.45);
+      border-radius: 18px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--accent-start);
+    }
+
+    /* Container for min/max inputs inside an attribute chip */
+    .chip-range {
+      display: flex;
+      gap: 4px;
+    }
+    /* Inputs inside chips: small number fields */
+    .chip-input {
+      width: 50px;
+      border: none;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--accent-end);
+      font-size: 11px;
+      padding: 1px 4px;
+      border-radius: 6px;
+      outline: none;
+    }
+    .chip-input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
+    }
+    /* Remove button styling inside chip */
+    .chip-remove {
+      cursor: pointer;
+      color: var(--accent-end);
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .chip span {
+      cursor: pointer;
+      color: var(--accent-end);
+      font-weight: 600;
+    }
+
+    /* Utility hidden class for toggling visibility */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Mode indicator for sidebar */
+    .mode-indicator-side {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Profile group styling */
+    #profileGroup h3 {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin: 0 0 6px;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #profileGroup .profile-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    #profileGroup .profile-buttons button {
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-image: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      color: #0b1120;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    #profileGroup .profile-buttons button:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 6px rgba(174, 131, 255, 0.5);
+    }
+    #profileGroup .profile-buttons button:active {
+      transform: scale(0.97);
+    }
+    #profileGroup .profile-buttons button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    #profileGroup select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255,255,255,0.05);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Hide the filter profile heading.  The filter profile system is
+       currently disabled; hiding its label prevents confusion. */
+    #profileGroup h3 {
+      display: none !important;
+    }
+
+    /* Mode indicator styling */
+    .mode-indicator {
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: -10px;
+      /* Gradient text similar to logo */
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Cards container */
+    .cards-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      /* Add a glowing border frame around the main results area */
+      border: 1px solid rgba(110, 142, 251, 0.25);
+      border-radius: 16px;
+      /* Darken the glow by reducing opacity and size */
+      box-shadow: 0 0 8px rgba(110, 142, 251, 0.2), inset 0 0 6px rgba(110, 142, 251, 0.1);
+      margin: 20px;
+    }
+
+    /* Negative search container tweaks: ensure it doesn't stretch and respects margins */
+    .neg-search {
+      /* Base negative search styles will be overridden in the row layout */
+      flex: none;
+      width: 100%;
+      margin: 0;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    /* Wrapper for negative search bar and its clear button */
+    .neg-search-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 10px;
+      /* Use full width and centre it via margins; max width ensures consistency */
+      width: 100%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      justify-content: center;
+    }
+    .neg-search-row .neg-search {
+      flex: 1;
+      width: 100%;
+      max-width: none;
+    }
+
+    /* Wrapper for the main search bar and clear button */
+    .search-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* Limit the total width of the search row and center it */
+      width: 80%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      gap: 12px;
+    }
+    .search-row .search-container {
+      flex: 1;
+      max-width: 700px;
+      width: 100%;
+    }
+    .search-row .clear-out-btn {
+      flex: 0 0 auto;
+    }
+
+    /* New search group to align and center both search rows within the top bar */
+    .search-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Unified styles for the main and negative search rows */
+    .search-row,
+    .neg-search-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      /* Use 100% width of the parent search group and limit the max width */
+      width: 100%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .search-row .search-container,
+    .neg-search-row .search-container {
+      flex: 1;
+      width: 100%;
+    }
+
+    /* Ensure clear buttons in search rows do not flex-grow */
+    .search-row .clear-out-btn,
+    .neg-search-row .clear-out-btn {
+      flex: 0 0 auto;
+    }
+
+    /* Module name filter search container styling */
+    .module-search input[type="text"] {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    /* Custom scrollbars for the body, sidebar, cards and suggestion boxes */
+    body::-webkit-scrollbar,
+    .sidebar::-webkit-scrollbar,
+    .cards-container::-webkit-scrollbar,
+    .suggestion-box::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    body::-webkit-scrollbar-thumb,
+    .sidebar::-webkit-scrollbar-thumb,
+    .cards-container::-webkit-scrollbar-thumb,
+    .suggestion-box::-webkit-scrollbar-thumb {
+      background: rgba(110, 142, 251, 0.5);
+      border-radius: 4px;
+    }
+    body::-webkit-scrollbar-track,
+    .sidebar::-webkit-scrollbar-track,
+    .cards-container::-webkit-scrollbar-track,
+    .suggestion-box::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Header top section inside card */
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .module-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-start);
+      margin: 0;
+    }
+
+    .category-label {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .price-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-end);
+    }
+
+    /* Info badges container under header */
+    .info-container {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      padding: 6px 16px 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    /* Allow seller badge to grow to fill remaining horizontal space */
+    .seller-badge {
+      flex: 1 1 0;
+    }
+
+    .info-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+      /* Info badges should take up only as much space as needed by default */
+      flex: 0 1 auto;
+      /* Allow long values to wrap to the next line if necessary */
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .info-label {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-right: 2px;
+      color: var(--text-muted);
+    }
+
+    .info-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .info-badge.highlight {
+      border-color: rgba(110, 142, 251, 0.4);
+      background: rgba(110, 142, 251, 0.12);
+    }
+
+    .info-badge.highlight .info-value {
+      color: var(--accent-start);
+    }
+
+    .copy-icon {
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--accent-end);
+      transition: color 0.2s;
+    }
+
+    .copy-icon:hover {
+      color: var(--accent-start);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 14px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-dot.online {
+      background: var(--positive);
+    }
+
+    .status-dot.offline {
+      background: var(--negative);
+    }
+
+    /* Card wrapper and card */
+    .card-wrapper {
+      position: relative;
+      border-radius: 16px;
+      /* Reduce brightness of the wrapper gradient */
+      background: linear-gradient(135deg, rgba(110, 142, 251, 0.3), rgba(167, 119, 227, 0.3));
+      padding: 2px;
+      /* Subtle glow around cards */
+      box-shadow: 0 0 6px rgba(110, 142, 251, 0.25), 0 0 14px rgba(167, 119, 227, 0.2);
+    }
+
+    .module-card {
+      /* Darker and more opaque background for better contrast */
+      background: linear-gradient(180deg, rgba(20, 25, 36, 0.92), rgba(12, 16, 28, 0.92));
+      backdrop-filter: blur(16px);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      /* Reduce inner highlight */
+      box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.04);
+    }
+
+    .data-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 16px 8px;
+    }
+
+    .group {
+      display: flex;
+      flex-direction: column;
+      min-width: 120px;
+      margin-right: 8px;
+    }
+
+    .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+      letter-spacing: 0.6px;
+    }
+
+    .value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .status-group .value {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-indicator.online {
+      background: var(--positive);
+    }
+
+    .status-indicator.offline {
+      background: var(--negative);
+    }
+
+    .stats-grid {
+      padding: 8px 16px 16px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.25);
+      position: relative;
+    }
+
+    .stat-line::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      border-radius: 3px 0 0 3px;
+    }
+
+    .stat-line.positive::before {
+      background: var(--positive);
+    }
+
+    .stat-line.negative::before {
+      background: var(--negative);
+    }
+
+    .stat-line.positive {
+      background: rgba(39, 174, 96, 0.12);
+    }
+
+    .stat-line.negative {
+      background: rgba(192, 57, 43, 0.12);
+    }
+
+    /* Highlight the skill label within stat lines */
+    .stat-line.positive .stat-label {
+      color: var(--positive);
+    }
+
+    .stat-line.negative .stat-label {
+      color: var(--negative);
+    }
+
+    .stat-value {
+      margin-left: 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .stat-label {
+      flex: 1;
+      color: var(--text-muted);
+    }
+
+    .stat-value {
+      margin-left: 8px;
+      font-weight: 600;
+    }
+
+    .stat-value.positive {
+      color: var(--positive);
+    }
+
+    .stat-value.negative {
+      color: var(--negative);
+    }
+
+    /* Generic number range filter styling for MR, Rerolls, and Age filters */
+    .number-range {
+      display: flex;
+      gap: 8px;
+    }
+    .number-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .number-field label {
+      font-size: 10px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .number-range input {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+    .number-range input:focus {
+      outline: none;
+      border-color: var(--accent-end);
+    }
+
+    /* Message when no items */
+    .no-items {
+      padding: 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Sort dropdown styling */
+    .sort-container {
+      position: relative;
+      /* Push the sort control to the far right of the top bar */
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+    }
+    .sort-container select {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+    .sort-container select option {
+      background: var(--panel-bg);
+      color: var(--text-primary);
+    }
+    /* Trigger filters container */
+    .trigger-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      /* Align and size the trigger filters similar to search rows */
+      width: 100%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+      justify-content: center;
+    }
+    .trigger-filter-group {
+      display: flex;
+      flex-direction: column;
+      margin-right: 12px;
+      gap: 4px;
+    }
+    .trigger-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      /* Allow longer attribute names to wrap naturally instead of truncating */
+      white-space: normal;
+      overflow: visible;
+      max-width: none;
+    }
+    .trigger-range {
+      display: flex;
+      gap: 6px;
+    }
+    .trigger-range input {
+      width: 80px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      font-size: 12px;
+    }
+    .trigger-range input:focus {
+      outline: none;
+      border-color: var(--accent-end);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar for filters -->
+    <aside class="sidebar">
+      <h1 class="logo-side">TFD Trade Market Helper</h1>
+      <!-- Display the current extension version below the title -->
+      <h2>Filters</h2>
+      <!-- Mode indicator for sidebar -->
+      <div id="modeIndicatorSide" class="mode-indicator-side"></div>
+      <!-- Persistent Filter Profile UI -->
+      <div id="profileGroup" class="filter-group">
+        <h3>Filter Profile</h3>
+        <div id="profileButtons" class="profile-buttons">
+          <button id="setDefaultProfileBtn" style="display:none;">Set Default</button>
+          <button id="renameProfileBtn" style="display:none;">Rename</button>
+          <button id="deleteProfileBtn" style="display:none;">Delete</button>
+          <button id="saveProfileBtn" disabled>Save</button>
+        </div>
+        <select id="filterProfileSelect">
+          <option value="">No Profile</option>
+        </select>
+      </div>
+      <!-- Status filter moved to top of sidebar -->
+      <!-- Status filter moved to top of sidebar -->
+      <div class="filter-group">
+        <h3>Status</h3>
+        <div id="statusFilters" class="filter-options"></div>
+      </div>
+      <!-- Platform filter -->
+      <div class="filter-group">
+        <h3>Platform</h3>
+        <div id="platformFilters" class="filter-options"></div>
+      </div>
+      <!-- Socket filter (hidden in trigger mode) moved above price filter -->
+      <div id="socketFilterGroup" class="filter-group">
+        <h3>Socket</h3>
+        <div id="socketFilters" class="filter-options"></div>
+      </div>
+
+      <!-- Price filter moved below socket -->
+      <div class="filter-group" id="priceFilterGroup">
+        <h3>Price</h3>
+        <div class="price-range">
+          <div class="price-field">
+            <label for="priceMin">Min</label>
+            <input type="number" id="priceMin" placeholder="Min">
+          </div>
+          <div class="price-field">
+            <label for="priceMax">Max</label>
+            <input type="number" id="priceMax" placeholder="Max">
+          </div>
+        </div>
+        <div id="priceRangeInfo" class="price-info"></div>
+      </div>
+      <!-- Category filter hidden (no longer shown) -->
+      <div class="filter-group category-group" style="display:none;">
+        <h3>Category</h3>
+        <div id="categoryButtons" class="category-buttons"></div>
+      </div>
+
+      <!-- Seller filter moved above Required MR -->
+      <div class="filter-group">
+        <h3>Seller</h3>
+        <input type="text" id="sellerFilter" placeholder="Seller name…" style="width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.05); color: var(--text-primary); font-size: 13px;">
+      </div>
+
+      <!-- Required Master Rank filter -->
+      <div id="mrFilterGroup" class="filter-group">
+        <h3>Required MR</h3>
+        <div class="number-range">
+          <div class="number-field">
+            <label for="mrMin">Min</label>
+            <input type="number" id="mrMin" placeholder="Min">
+          </div>
+          <div class="number-field">
+            <label for="mrMax">Max</label>
+            <input type="number" id="mrMax" placeholder="Max">
+          </div>
+        </div>
+      </div>
+
+      <!-- Rerolls filter -->
+      <div id="rerollFilterGroup" class="filter-group">
+        <h3>Rerolls</h3>
+        <div class="number-range">
+          <div class="number-field">
+            <label for="rerollMin">Min</label>
+            <input type="number" id="rerollMin" placeholder="Min">
+          </div>
+          <div class="number-field">
+            <label for="rerollMax">Max</label>
+            <input type="number" id="rerollMax" placeholder="Max">
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Age filter (in days) -->
+      <div class="filter-group">
+        <h3>Age (days)</h3>
+        <div class="number-range">
+          <div class="number-field">
+            <label for="ageMin">Min</label>
+            <input type="number" id="ageMin" step="0.1" placeholder="Min">
+          </div>
+          <div class="number-field">
+            <label for="ageMax">Max</label>
+            <input type="number" id="ageMax" step="0.1" placeholder="Max">
+          </div>
+        </div>
+      </div>
+      <!-- Age filter (in hours) -->
+      <div class="filter-group" id="ageHoursGroup">
+        <h3>Age (hours)</h3>
+        <div class="number-range">
+          <div class="number-field">
+            <label for="ageHoursMin">Min</label>
+            <input type="number" id="ageHoursMin" placeholder="Min">
+          </div>
+          <div class="number-field">
+            <label for="ageHoursMax">Max</label>
+            <input type="number" id="ageHoursMax" placeholder="Max">
+          </div>
+        </div>
+      </div>
+
+    </aside>
+    <!-- Main content area -->
+    <main class="main">
+      <div class="top-bar">
+        <!-- Central search group contains both search bars and trigger filters.  It grows to fill available space and centers its contents. -->
+        <div class="search-group">
+          <!-- Main search bar and clear button -->
+          <div class="search-row">
+            <div id="attributeSearchContainer" class="search-container">
+              <input id="attributeSearch" type="text" placeholder="Search skill attributes…">
+              <div id="attributeSuggestions" class="suggestion-box hidden"></div>
+            </div>
+            <button id="clearMainSearch" class="clear-out-btn" type="button" title="Clear selected attributes">Clear</button>
+          </div>
+          <!-- Selected attribute chips placed directly below the main search bar -->
+          <div id="selectedAttributes" class="selected-chips"></div>
+          <!-- Trigger filters will be inserted here dynamically when in trigger mode -->
+          <div id="triggerFilters" class="trigger-filters hidden"></div>
+          <!-- Negative attribute search row: filters out modules with selected negative stats. Hidden in trigger mode. -->
+          <div class="neg-search-row" id="negSearchRow">
+            <div id="negSearchContainer" class="search-container neg-search">
+              <input id="negAttributeSearch" type="text" placeholder="Exclude negative attributes…">
+              <div id="negAttributeSuggestions" class="suggestion-box hidden"></div>
+            </div>
+            <button id="clearNegSearch" class="clear-out-btn" type="button" title="Clear negative filters">Clear</button>
+          </div>
+          <!-- Selected negative attribute chips placed below the negative search bar -->
+          <div id="negSelectedAttributes" class="selected-chips"></div>
+        </div>
+        <!-- Sort dropdown aligned to the right -->
+        <div class="sort-container">
+          <!-- Display the current count of items before the sort control -->
+          <span id="resultsCount" class="results-count"></span>
+          <select id="sortSelect">
+            <option value="priceAsc">Caliber ↑</option>
+            <option value="priceDesc">Caliber ↓</option>
+            <option value="nameAsc">Name A‑Z</option>
+            <option value="nameDesc">Name Z‑A</option>
+          </select>
+        </div>
+      </div>
+      <!-- Container for module cards -->
+      <div id="cardsContainer" class="cards-container"></div>
+    </main>
+  </div>
+  <script src="helper.js"></script>
+  <!-- Listen for marketData events from the parent frame in the Electron app. When
+       data is received, clear the current cards and invoke initializeUI to
+       render the view. -->
+  <script>
+    window.addEventListener('message', function(event) {
+      const msg = event.data;
+      if (!msg || msg.type !== 'marketData') return;
+      // When moduleType is provided by the parent (ancestor vs trigger), store it
+      // on the window for helper.js to detect and adjust the UI accordingly. This
+      // avoids showing the wrong view (ancestor/trigger) before data arrives.
+      if (msg.moduleType) {
+        window.__moduleType = msg.moduleType;
+      }
+      // If this is the first dataset received, initialise the UI. Otherwise
+      // append modules to the existing dataset to preserve filter state.
+      // Initialise or update the view. Always call initializeUI the first time
+      // a marketData event is received, even if the data array is empty. This
+      // ensures that the correct layout (ancestor vs trigger) is rendered
+      // immediately based on the moduleType provided by the parent. When the
+      // search finishes, rebuild the UI with the complete dataset to update
+      // filters. Otherwise, append incoming modules to preserve filter state.
+      // Use two flags: __layoutReady indicates that the UI has been
+      // initialised at least once (even if with an empty dataset) so that
+      // the correct layout (ancestor or trigger) is applied immediately.
+      // __dataInit indicates that initialiseUI has been called with
+      // non-empty data, building filters and suggestions. After that,
+      // incremental updates use appendModules until the search finishes.
+      if (!window.__layoutReady) {
+        // First event: always build the layout (may be empty) based on the
+        // moduleType. This ensures the correct trigger/ancestor view is
+        // shown immediately.
+        window.__layoutReady = true;
+        const containerEl = document.getElementById('cardsContainer');
+        if (containerEl) containerEl.innerHTML = '';
+        if (Array.isArray(msg.data) && typeof window.initializeUI === 'function') {
+          window.initializeUI(msg.data);
+        }
+      } else if (!window.__dataInit && Array.isArray(msg.data) && msg.data.length > 0) {
+        // The first non-empty batch of modules: rebuild the UI to
+        // populate filters and suggestions.
+        window.__dataInit = true;
+        if (typeof window.initializeUI === 'function') {
+          window.initializeUI(msg.data);
+        }
+      } else {
+        // Subsequent updates: if the search has finished, rebuild the UI
+        // with the full dataset; otherwise, append modules to preserve
+        // filter selections.
+        if (msg.finished) {
+          if (Array.isArray(msg.data) && typeof window.initializeUI === 'function') {
+            window.initializeUI(msg.data);
+          }
+        } else {
+          if (Array.isArray(msg.data) && typeof window.appendModules === 'function') {
+            window.appendModules(msg.data);
+          }
+        }
+      }
+    });
+  </script>
+
+  <!-- Initialize the filter profile manager once the layout is ready. -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const interval = setInterval(function() {
+        if (window.profileManager && typeof window.profileManager.initUI === 'function' && window.__layoutReady) {
+          clearInterval(interval);
+          try {
+            window.profileManager.initUI();
+          } catch (e) {
+            console.error('Failed to initialise profile manager', e);
+          }
+        }
+      }, 200);
+    });
+  </script>
+</body>
+</html>

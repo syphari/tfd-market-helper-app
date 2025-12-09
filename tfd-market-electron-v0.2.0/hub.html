@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TFD Market Helper Dashboard</title>
+  <style>
+    /* Basic dark themed styling. This page acts as the hub for all searches. */
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background-color: #0b1120;
+      color: #d6d9e6;
+      overflow: hidden;
+    }
+    #sidebar {
+      width: 200px;
+      background-color: rgba(18, 22, 32, 0.85);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+    #sidebar h2 {
+      margin-top: 0;
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    #sidebar button {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      background-image: linear-gradient(90deg, #6e8efb, #a777e3);
+      border: none;
+      border-radius: 4px;
+      color: #0b1120;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #content {
+      margin-left: 200px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #tab-bar {
+      display: flex;
+      background-color: rgba(18, 22, 32, 0.85);
+      padding: 0 10px;
+      align-items: center;
+    }
+    .tab {
+      padding: 8px 12px;
+      margin-right: 4px;
+      background-color: rgba(13, 18, 31, 0.8);
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+    }
+    .tab.active {
+      background-image: linear-gradient(90deg, #6e8efb, #a777e3);
+      color: #0b1120;
+      font-weight: 600;
+    }
+    .tab .close {
+      margin-left: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Hide the dashboard tab completely. Users start with no tabs and see
+       instructions in the view area instead of a dashboard tab. */
+    .tab[data-tab="dashboard"] {
+      display: none;
+    }
+    .tab input.rename {
+      width: 100px;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+    #view-container {
+      flex: 1;
+      overflow-y: auto;
+      background-color: rgba(13, 18, 31, 0.8);
+      padding: 20px;
+    }
+    .view {
+      display: none;
+      height: 100%;
+    }
+    .view.active {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.9rem;
+      color: #7a89a2;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      background-color: rgba(13, 18, 31, 0.8);
+      color: #d6d9e6;
+      /* Ensure padding and border are included in the width so inputs do not overflow the sidebar */
+      box-sizing: border-box;
+    }
+    button.search-btn {
+      padding: 8px 12px;
+      background-image: linear-gradient(90deg, #6e8efb, #a777e3);
+      border: none;
+      border-radius: 4px;
+      color: #0b1120;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    /* Results styling: simple table to display modules */
+    table.results {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    table.results th, table.results td {
+      padding: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    table.results th {
+      text-align: left;
+      font-weight: 600;
+    }
+
+    /* Status indicator for search progress */
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-left: 0;
+    }
+    .status-running {
+      background-color: #ffc107; /* yellow */
+      animation: pulse 1.5s infinite;
+    }
+    .status-finished {
+      background-color: #28a745; /* green */
+      animation: none;
+    }
+    .status-stopped {
+      background-color: #dc3545; /* red */
+      animation: none;
+    }
+
+    /* Status while the request is being sent (before autoscroll begins) */
+    .status-sending {
+      background-color: #17a2b8; /* blue */
+      animation: pulse 1.5s infinite;
+    }
+
+    /* Status text styling; will pulse with the same colour as indicator */
+    .status-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .status-running-text {
+      color: #ffc107;
+      animation: pulse 1.5s infinite;
+    }
+    .status-finished-text {
+      color: #28a745;
+      animation: none;
+    }
+    .status-stopped-text {
+      color: #dc3545;
+      animation: none;
+    }
+
+    /* Status indicator and text for error states (e.g. when the site changes
+       and the configuration steps fail). Reuse the stopped colour but
+       separate class names for clarity. */
+    .status-error {
+      background-color: #dc3545;
+      animation: none;
+    }
+    .status-error-text {
+      color: #dc3545;
+      animation: none;
+    }
+
+    /* Retry container styling */
+    /* Error retry UI. The message is absolutely positioned above the
+       status wrapper, and the button is displayed inline next to the
+       status indicator. These styles ensure that showing an error does
+       not reflow the layout. */
+    .retry-message {
+      font-size: 0.8rem;
+      color: #dc3545;
+    }
+    /* Style the retry button to use a red gradient and smaller size */
+    .retry-btn {
+      font-size: 0.8rem;
+      padding: 6px 10px;
+      background-image: linear-gradient(90deg, #dc3545, #e04f5f);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .retry-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(220, 53, 69, 0.6);
+    }
+    .retry-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Interactive animations for buttons */
+    button.search-btn, #sidebar button, .tab, .tab .close, .retry-btn {
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.search-btn:hover, #sidebar button:hover, .retry-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 8px rgba(174, 131, 255, 0.6);
+    }
+    button.search-btn:active, #sidebar button:active, .retry-btn:active {
+      transform: scale(0.95);
+    }
+    input[type="text"]:focus, select:focus {
+      box-shadow: 0 0 6px rgba(174, 131, 255, 0.6);
+      outline: none;
+    }
+
+    /* Status text for sending request */
+    .status-sending-text {
+      color: #17a2b8;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Feature toggles: hide broken or debugging elements
+       The profile system and debugging controls are currently under
+       development.  To prevent users from interacting with these
+       unfinished features we hide the relevant UI components using
+       simple CSS selectors.  Once the underlying functionality has
+       been fixed these rules can be removed. */
+    /* Hide the global debug button in the sidebar */
+    #global-debug-btn {
+      display: none !important;
+    }
+    /* Hide per‑tab debug toggle buttons.  These buttons are created
+       dynamically by hub.js and marked with a data‑debug attribute,
+       so we can target them without affecting other buttons. */
+    [data-debug] {
+      display: none !important;
+    }
+
+    /* Version label in the sidebar.  The helper version is displayed at
+       the bottom of the left sidebar.  We anchor it to the bottom of
+       the sidebar using absolute positioning. */
+    #version-label {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-size: 0.8rem;
+      color: #7a89a2;
+    }
+
+    /* Sidebar gradient background and header styles */
+    #sidebar {
+      /* Soft gradient from dark blue to deep purple for a modern look */
+      background-image: linear-gradient(180deg, rgba(18,22,32,0.95) 0%, rgba(33,25,56,0.9) 100%);
+    }
+    #app-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      /* Gradient text for the title */
+      background: linear-gradient(90deg, #6e8efb, #a777e3);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 1rem 0;
+      display: inline-block;
+    }
+    /* Increase size and improve visibility of form labels */
+    #sidebar label {
+      font-size: 0.95rem;
+      color: #9faedc;
+      font-weight: 600;
+    }
+    /* Increase size and adjust colours of form controls */
+    #sidebar input[type="text"], #sidebar select {
+      font-size: 0.95rem;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background-color: rgba(13,18,31,0.7);
+      color: #d6d9e6;
+    }
+    /* Gradient border and subtle shadow around each result view */
+    .view {
+      background: linear-gradient(135deg, rgba(13,18,31,0.85), rgba(18,22,32,0.85));
+      border: 1px solid rgba(108,94,163,0.3);
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(174,131,255,0.15);
+      padding: 12px;
+    }
+
+    /* Center the welcome instructions when no searches are open. The wrapper
+       uses flexbox to centre its contents both vertically and horizontally
+       inside the dashboard view. */
+    #dashboard {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    #dashboard .welcome-wrapper {
+      max-width: 600px;
+    }
+    #dashboard .welcome-wrapper h2,
+    #dashboard .welcome-wrapper p {
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h2 id="app-title">TFD TRADE MARKET HELPER</h2>
+    <!-- Search form moved into the sidebar for easy access -->
+    <form id="search-form" style="margin-bottom: 16px;">
+      <div class="form-group">
+        <label for="moduleType">Module Type</label>
+        <select id="moduleType" name="moduleType">
+          <option value="ancestor">Ancestor</option>
+          <option value="trigger">Trigger</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="moduleName">Module Name</label>
+        <input type="text" id="moduleName" name="moduleName" placeholder="Enter module name..." />
+      </div>
+      <div class="form-group">
+        <label for="platform">Platform</label>
+        <select id="platform" name="platform">
+          <option value="all">All-Platform</option>
+          <option value="pc">PC(STEAM)</option>
+          <option value="ps">PS</option>
+          <option value="xbox">XBOX</option>
+        </select>
+      </div>
+      <button type="submit" class="search-btn">Search</button>
+    </form>
+    <button id="global-debug-btn">Debug Console</button>
+    <!-- Display the current application version at the bottom of the sidebar -->
+    <div id="version-label">Version 0.2.0 Beta</div>
+  </div>
+  <div id="content">
+    <div id="tab-bar">
+      <div class="tab active" data-tab="dashboard">Dashboard</div>
+    </div>
+    <div id="view-container">
+      <!-- Dashboard view remains for backwards compatibility but now serves as a placeholder when no searches are open -->
+      <div id="dashboard" class="view active">
+        <!-- Center the welcome message and instructions in the view. Using flex
+             ensures that when no tabs are open the text remains centered
+             regardless of the sidebar height. The heading and paragraph are
+             kept on separate lines with minimal margins so they don't jump
+             around when tabs are opened/closed. -->
+        <div class="welcome-wrapper">
+          <h2>Welcome to TFD Market Helper</h2>
+          <p>Please enter the module type, name and platform using the form on the left to begin searching. New results will appear here in a new tab.</p>
+        </div>
+      </div>
+      <!-- Dynamic result views will be appended here by hub.js -->
+    </div>
+  </div>
+  <script src="hub.js"></script>
+</body>
+</html>

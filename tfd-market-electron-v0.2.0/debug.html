@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Debug Console</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: monospace;
+      background-color: #0b1120;
+      color: #d6d9e6;
+    }
+    h1, h2 {
+      margin-top: 0;
+    }
+    pre {
+      background-color: #131a2f;
+      padding: 10px;
+      border-radius: 4px;
+      height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #2a3551;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    th {
+      background-color: #1a2140;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Debug Console</h1>
+  <h2>Logs</h2>
+  <pre id="log"></pre>
+  <h2>Search Metrics</h2>
+  <table id="metrics">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Status</th>
+        <th>Items</th>
+        <th>Started</th>
+        <th>Finished</th>
+        <th>Filters</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    const logEl = document.getElementById('log');
+    const metricsBody = document.getElementById('metrics').querySelector('tbody');
+    function formatDate(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleTimeString();
+    }
+    async function refresh() {
+      const data = await window.debugAPI.requestInfo();
+      // Update logs
+      logEl.textContent = data.logs.map(l => {
+        const t = new Date(l.timestamp);
+        return `${t.toLocaleTimeString()} - ${l.message}`;
+      }).join('\n');
+      // Update metrics
+      metricsBody.innerHTML = '';
+      data.metrics.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${m.id}</td><td>${m.running ? 'running' : 'finished'}</td><td>${m.items}</td><td>${formatDate(m.startedAt)}</td><td>${formatDate(m.finishedAt)}</td><td>${JSON.stringify(m.filters)}</td>`;
+        metricsBody.appendChild(tr);
+      });
+    }
+    // Initial refresh
+    refresh();
+    // Periodically refresh
+    setInterval(refresh, 2000);
+    // Listen for log events and refresh on change
+    window.debugAPI.onDebugLog((_payload) => {
+      refresh();
+    });
+  </script>
+</body>
+</html>

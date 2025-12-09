@@ -1,0 +1,26 @@
+{
+  "name": "tfd-market-electron",
+  "version": "1.1.0",
+  "description": "Electron app wrapper for The First Descendant market helper with multi-tab dashboard.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^26.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "author": "",
+  "build": {
+    "appId": "com.tfd.market.helper",
+    "productName": "TFD Market Helper",
+    "files": [
+      "**/*"
+    ],
+    "icon": "build/icon",
+    "win": {
+      "target": "portable"
+    }
+  }
+}
