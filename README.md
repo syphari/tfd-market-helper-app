@@ -139,20 +139,6 @@ You now get:
 
 ---
 
-## 📦 Project Structure
-```
-TFD-Market-Helper/
-│── manifest.json
-│── popup.html
-│── popup.js
-│── helper.js
-│── market_helper.html
-│── icon16.png
-│── icon48.png
-│── icon128.png
-```
-
----
 
 ## 🛠️ Tech Stack
 - Electron (Chromium + Node.js)
