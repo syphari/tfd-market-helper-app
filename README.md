@@ -37,6 +37,7 @@ This extension fixes all of that and more.
 - Waits for The First Descendant’s lazy-loader to finish  
 - Detects market mode (Ancestor or Trigger Modules)  
 - Parses every card into structured, filterable data
+- Renameable Tabs - Double click to rename
 
 ### 🎯 Module-Specific Filtering
 #### **Ancestor Modules**
