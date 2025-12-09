@@ -153,7 +153,7 @@ You now get:
 ## 🧭 Notes & Limitations
 - The extension **does not hook into Nexon's API**.  
 - All data comes from the rendered DOM after autoscroll.  
-- Must load results fully on the official site before processing.
+- It must load results fully on the official site in the hidden window before processing.
 
 ---
 
