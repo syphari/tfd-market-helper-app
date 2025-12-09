@@ -5,7 +5,7 @@ This extension captures all market results automatically, parses them, and displ
 
 
 ## Ancestor Module Mode
-<img width="2560" height="1369" alt="8pBVeveWww" src="https://github.com/user-attachments/assets/f06be147-9612-4aee-a49f-8fec9524b148" />
+<img width="2560" height="1369" alt="image" src="https://github.com/user-attachments/assets/1ff624a8-6194-4ea4-8d8a-608d9fc355a3" />
 
 
 
